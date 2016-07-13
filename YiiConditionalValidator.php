@@ -15,6 +15,10 @@
  *          array('dueDate', 'required', [other params]),
  *          array('dueDate', 'numerical', [other params]),
  *      ),
+ *      'else'=>array(
+ *          array('dueDate', 'required', [other params]),
+ *          array('dueDate', 'numerical', [other params]),
+ *      ),
  * ),
  *
  * @author Sidney Lins <solucoes@wmaior.com>
@@ -27,10 +31,7 @@ class YiiConditionalValidator extends CValidator
 
     public $if = array();
     public $then = array();
-    public $ifJS = '';
-
-    private $jsCondition;
-
+    public $else = array();
 
     public function __construct()
     {
@@ -43,6 +44,8 @@ class YiiConditionalValidator extends CValidator
 
         if ($noErrorsOnIfRules) {
             $this->runValidators($this->prepareValidatorsData($object, $this->then));
+        } else if (!empty($this->else)) {
+        	$this->runValidators($this->prepareValidatorsData($object, $this->else));
         }
     }
 
@@ -147,6 +150,10 @@ class YiiConditionalValidator extends CValidator
         if (!is_array($this->then)) {
             throw new CException('Invalid argument "dependentValidations" for YiiConditionalValidator. Please, suply an array().');
         }
+        
+        if (!is_array($this->else)) {
+        	throw new CException('Invalid argument "elseDependentValidations" for YiiConditionalValidator. Please, suply an array().');
+        }
     }
 
     /**
@@ -197,59 +204,6 @@ class YiiConditionalValidator extends CValidator
         }
         return true;
     }
-
-
-    /**
-        Partial support for clientside conditional validation
-        Due to encapsulation, we can't get JS info regarding other parts of the form - validation is done per field basis.
-        To get this to work, you need to provide javascript condition to perform before field validation.
-
-        rules = array(
-            array('field1, field2', 'ext.YiiConditionalValidator',
-                'if' => array(
-                    array('field', 'compare', 'compareValue' => 1)
-                ),
-                'ifJS' => "$('#FormID_field').is(':checked')",
-                'then' => array(
-                    array('field1, field2', 'required')
-                )
-        )
-
-
-
-    */
-  public function clientValidateAttribute($object, $pattribute){
-
-    $validatorsData = $this->prepareValidatorsData($object, $this->then);
-
-    // global JS kill switch for conditional validation
-    $retJS = 'if('. $this->ifJS .') {';
-    $js = '';
-
-    foreach($validatorsData as $preparedData ){
-      $validation = $preparedData['validation'];
-      $object     = $preparedData['object'];
-      $attribute  = $preparedData['attribute'];
-      $params     = $preparedData['params'];
-
-      if( strpos($attribute, $pattribute) !== FALSE){
-
-        $validator = CValidator::createValidator($validation, $object, $pattribute, $params);
-        $js .= $validator->clientValidateAttribute($object, $pattribute);
-
-      }
-
-
-    }
-
-    $retJS .= $js;
-
-    $retJS .= '}';
-
-    return $retJS;
-
-
-  }
 
 }
 
